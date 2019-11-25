@@ -1,0 +1,13 @@
+spring:
+  h2:
+    console:
+      enabled: true
+      path: /db      settings:        web-allow-others: true
+      
+  jpa:    hibernate:      ddl-auto: create
+    show-sql: true
+      
+  datasource:    driver-class-name: org.h2.Driver
+    url: jdbc:h2:file:~/h2/test_db;AUTO_SERVER=TRUE
+    username: test
+    password: 1234
