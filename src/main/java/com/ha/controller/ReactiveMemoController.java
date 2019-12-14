@@ -4,24 +4,32 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ha.entity.Memo;
 import com.ha.service.MemoService;
 
+import reactor.core.publisher.Mono;
+
 @RestController
 public class ReactiveMemoController {
 	
-	@Autowired
 	private MemoService memoService;
 	
-//	@GetMapping("/hello")
-//    public Mono<Memo> hello() {
-//        return Mono.just(memoService.findAll().get(0));
-//    }
+	public ReactiveMemoController(
+			final MemoService memoService) {
+		this.memoService = memoService;
+	}
 	
 	@GetMapping("/hello2")
 	public List<Memo> hello2() {
 		return memoService.findAll();
+	}
+	
+	@GetMapping(value = "/v2/memos/{id}")
+	public Mono<Memo> getMemo(
+			@PathVariable(name = "id", required = true) Long id){
+		return memoService.findById(id);
 	}
 }

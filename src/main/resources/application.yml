@@ -1,8 +1,9 @@
 spring:
   h2:
+    port: 8082
     console:
-      enabled: true
-      path: /db      settings:        web-allow-others: true
+      enabled: true      path: /db      settings:
+        web-allow-others: true
       
   jpa:    hibernate:      ddl-auto: create
     show-sql: true
