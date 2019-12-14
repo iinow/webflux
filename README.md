@@ -7,4 +7,4 @@
 ## 리액티브란
 
 * 기존 동기식 방식
-   * [screenshot](./imgaes/1.png)
+   * [screenshot](./images/1.png)
