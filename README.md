@@ -133,15 +133,15 @@ response.addCallback(onSuccess, onFailure);
 
 1. filter
 
-![](images/3.png)
+![](images/3.PNG)
 
 2. find
 
-![](images/4.png)
+![](images/4.PNG)
 
 3. withLatestFrom
 
-![](images/5.png)
+![](images/5.PNG)
 
 <hr/>
 
