@@ -7,7 +7,6 @@ import org.springframework.web.reactive.function.server.ServerResponse;
 
 import com.ha.entity.Memo;
 import com.ha.repository.MemoRepository;
-import com.ha.repository.ReactiveMemoRepository;
 
 import reactor.core.publisher.Mono;
 
@@ -15,12 +14,9 @@ import reactor.core.publisher.Mono;
 public class MemoHandler {
 	
 	private MemoRepository repository;
-	private ReactiveMemoRepository reactiveRepository;
-	
+
 	public MemoHandler(
-			final MemoRepository repository, 
-			final ReactiveMemoRepository reactiveRepository) {
-		this.reactiveRepository = reactiveRepository;
+			final MemoRepository repository) {
 		this.repository = repository;
 	}
 	
@@ -30,9 +26,5 @@ public class MemoHandler {
 		Long id = Long.parseLong(request.pathVariable("id"));
 		Memo m = repository.findById(id).get();
 		return jsonBuilder.body(Mono.just(m), Memo.class);
-	}
-	
-	public Mono<Memo> findById(Long id){
-		return reactiveRepository.findById(id);
 	}
 }

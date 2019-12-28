@@ -15,7 +15,7 @@ import lombok.RequiredArgsConstructor;
 @EnableWebFlux
 @SpringBootApplication
 public class ReactiveApplication {
-	
+
 	@Autowired
 	private MemoRepository repository;
 
@@ -26,7 +26,6 @@ public class ReactiveApplication {
 	@PostConstruct
 	public void init() {
 		Memo m = new Memo();
-		m.setName("Helelele");
 		repository.save(m);
 	}
 }

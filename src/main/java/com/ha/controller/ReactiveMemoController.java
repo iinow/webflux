@@ -3,9 +3,8 @@ package com.ha.controller;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
+import org.springframework.web.bind.annotation.*;
 
 import com.ha.entity.Memo;
 import com.ha.service.MemoService;
@@ -26,10 +25,10 @@ public class ReactiveMemoController {
 	public List<Memo> hello2() {
 		return memoService.findAll();
 	}
-	
-	@GetMapping(value = "/v2/memos/{id}")
-	public Mono<Memo> getMemo(
-			@PathVariable(name = "id", required = true) Long id){
-		return memoService.findById(id);
+
+	@PostMapping(value = "")
+	public Mono<Memo> post(
+			@RequestBody Memo memo){
+		return Mono.just(memo);
 	}
 }
