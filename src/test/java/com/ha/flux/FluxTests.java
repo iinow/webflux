@@ -1,15 +1,17 @@
 package com.ha.flux;
 
 import org.junit.jupiter.api.Test;
+import org.reactivestreams.Processor;
 import org.springframework.test.context.TestPropertySource;
-import reactor.core.publisher.ConnectableFlux;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Hooks;
+import reactor.core.publisher.*;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.Random;
 import java.util.UUID;
 import java.util.function.Function;
@@ -119,6 +121,12 @@ public class FluxTests {
                 .delayElements(Duration.ofMillis(1))
                 .sample(Duration.ofMillis(20))
                 .subscribe(System.out::println);
+
+    }
+
+    @Test
+    public void reactiveSequenceToBlocking(){
+        Iterable<Integer> iter = Flux.just(1, 2, 3, 4).toIterable();
 
     }
 
@@ -358,9 +366,68 @@ public class FluxTests {
     }
 
     @Test
+    public void processer(){
+        FluxProcessor.just(1, 2, 3, 4)
+            .subscribe(System.out::println);
+    }
+
+    @Test
     public void debug(){
         Hooks.onOperatorDebug();
         Flux.just(1).log();
+
+    }
+
+    /**
+     * any -> Mono<Boolean>
+     * */
+    @Test
+    public void any(){
+        Flux.just(2, 4, 5, 6)
+            .any(v -> v % 2 == 1)
+            .subscribe(exist -> System.out.println("event " + exist));
+    }
+
+    @Test
+    public void distinctUntilChanged(){
+        Flux.just(1, 1, 1, 2, 2, 3, 2, 1, 1, 4)
+            .distinctUntilChanged()
+            .subscribe(System.out::println);
+    }
+
+    @Test
+    public void pressureBuffer(){
+        Flux.just(1, 2, 3, 4)
+            .onBackpressureBuffer(2)
+            .subscribe(System.out::println);
+    }
+
+    @Test
+    public void pressureDrop(){
+        Flux.just(1, 2, 3, 4)
+            .onBackpressureDrop(v -> {
+                System.out.println("onBackpressureDrop, v: " + v);
+            })
+            .subscribe(System.out::println);
+    }
+
+    @Test
+    public void pressureLast(){
+        Flux.just(1, 2, 3, 4)
+            .onBackpressureLatest()
+            .subscribe(System.out::println);
+    }
+
+    @Test
+    public void publishOn(){
+        Scheduler scheduler = Schedulers.elastic();
+
+        Flux.range(0, 100)
+            .map(String::valueOf)
+            .filter(s -> s.length() > 1)
+            .publishOn(scheduler)
+            .map(s -> s + "!")
+            .subscribe();
     }
 }
  
