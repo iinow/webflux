@@ -2,12 +2,17 @@ package com.ha.flux;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.TestPropertySource;
+import reactor.core.publisher.ConnectableFlux;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Hooks;
+import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Random;
+import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.IntStream;
 
 public class FluxTests {
@@ -214,6 +219,148 @@ public class FluxTests {
                 () -> System.out.println("onComplete")
             );
         Thread.sleep(10000);
+    }
+
+    /**
+     * 구독자가 오기 전에 데이터를 미리 생성하지 않는다.
+     * */
+    @Test
+    public void coldStream(){
+        Flux<String> coldPublisher = Flux.defer(() -> {
+                System.out.println("generate uuid");
+                return Flux.just(UUID.randomUUID().toString());
+            }
+        );
+        System.out.println("No data was generated so far");
+        coldPublisher.subscribe(e -> System.out.println("onNext: " + e));
+        coldPublisher.subscribe(e -> System.out.println("onNext: " + e));
+        System.out.println("Data was generated twice for two subscribers");
+    }
+
+    @Test
+    public void hotStream(){
+        Flux<String> hotPublisher = Flux.just(UUID.randomUUID().toString());
+        hotPublisher.subscribe(e -> System.out.println("onNext: " + e));
+        hotPublisher.subscribe(e -> System.out.println("onNext: " + e));
+    }
+
+    /**
+     * coldPublisher -> hotPublisher 로 변환 ConnectableFlux 를 사용한다.
+     * */
+    @Test
+    public void connectableFlux(){
+        Flux<Integer> source = Flux.range(0, 3)
+            .doOnSubscribe(s ->
+                System.out.println("new subscription for the cold publisher"));
+        ConnectableFlux<Integer> conn = source.publish();
+
+        conn.subscribe(e -> System.out.println("[Subscriber 1] onNext: " + e));
+        conn.subscribe(e -> System.out.println("[Subscriber 2] onNext: " + e));
+
+        //기존 coldPublisher
+//        source.subscribe(e -> System.out.println("[Subscriber 1] onNext: " + e));
+//        source.subscribe(e -> System.out.println("[Subscriber 2] onNext: " + e));
+
+        System.out.println("all subscribers are ready, connecting");
+        conn.connect();
+    }
+
+    /**
+     * The Data caching at 1 seconds After ColdPublisher generated
+     * */
+    @Test
+    public void cache() throws InterruptedException {
+        Flux<Integer> source = Flux.range(0, 2)
+                .doOnSubscribe(s -> System.out.println("new subscription for the cold publisher"));
+
+        Flux<Integer> cachedSource = source.cache(Duration.ofSeconds(1));
+
+        cachedSource.subscribe(e -> System.out.println("[S 1] onNext: " + e));
+        cachedSource.subscribe(e -> System.out.println("[S 2] onNext: " + e));
+
+        Thread.sleep(1200);
+
+        cachedSource.subscribe(e -> System.out.println("[S 3] onNext: " + e));
+    }
+
+    /**
+     * ColdPublisher 의 Stream 을 공유한다.
+     * */
+    @Test
+    public void share() throws InterruptedException {
+        Flux<Integer> source = Flux.range(0, 5)
+            .delayElements(Duration.ofMillis(1000))
+            .doOnSubscribe(s -> System.out.println("new subscription for the cold publisher"));
+
+        Flux<Integer> cachedSource = source.share();
+
+        cachedSource.subscribe(e -> System.out.println("[S 1] onNext: " + e));
+        Thread.sleep(4000);
+        cachedSource.subscribe(e -> System.out.println("[S 2] onNext: " + e));
+        Thread.sleep(10000);
+    }
+
+    /**
+     * 정확한 시간 지연을 보장하지 않는다.
+     * Java ScheduledExecutorService 를 사용하기 때문에
+     * */
+    @Test
+    public void elapsed(){
+       Flux.range(0, 5)
+            .delayElements(Duration.ofMillis(100))
+            .elapsed()
+            .subscribe(e -> System.out.println("Elapsed " + e.getT1() + " ms: " + e.getT2()));
+    }
+
+    /**
+     * 스트림이 올때마다 조합하고 변환한다.
+     * 몇 명의 구독자가 오든 항상 동일한 변환 작업을 수행한다.
+     * */
+    @Test
+    public void transform(){
+        Function<Flux<String>, Flux<String>> logUserInfo =
+                stream -> stream.index()
+                    .doOnNext(tp -> System.out.println("["+tp.getT1()+"] User: " + tp.getT2()))
+                    .map(Tuple2::getT2);
+
+        Flux.range(1000, 3)
+            .map(i -> "user-" + i)
+            .transform(logUserInfo)
+            .subscribe(e -> System.out.println("onNext: " + e));
+    }
+
+    private boolean b = false;
+    /**
+     * 구독자가 올때마다 다른 변환 작업을 수행한다.
+     * compose deprecated 되고 transformDeferred 를 사용해야함
+     * */
+    @Test
+    public void compose(){
+        Function<Flux<String>, Flux<String>> logUserInfo = stream -> {
+            if(b){
+                b = false;
+                return stream
+                        .doOnNext(e -> System.out.println("[path A] User: " + e));
+            }else {
+                b = true;
+                return stream
+                        .doOnNext(e -> System.out.println("[path B] User: " + e));
+            }
+        };
+
+        Flux<String> publisher = Flux.just("1", "2")
+                .transform(logUserInfo);
+//                .transformDeferred(logUserInfo);
+//                .compose(logUserInfo);
+
+        publisher.subscribe();
+        publisher.subscribe();
+    }
+
+    @Test
+    public void debug(){
+        Hooks.onOperatorDebug();
+        Flux.just(1).log();
     }
 }
  
